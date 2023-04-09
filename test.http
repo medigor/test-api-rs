@@ -1,0 +1,8 @@
+###
+POST http://localhost:8080/counter
+
+###
+POST http://localhost:8080/counter/json
+
+###
+POST http://localhost:8080/sleep/1000
