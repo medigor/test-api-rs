@@ -35,8 +35,19 @@ pub async fn counter() -> impl IntoResponse {
 }
 
 pub async fn headers(headers: HeaderMap) -> impl IntoResponse {
+    let nginx_headers = [
+        "x-forwarded-for",
+        "x-forwarded-host",
+        "x-forwarded-port",
+        "x-forwarded-proto",
+        "x-forwarded-scheme",
+        "x-real-ip",
+        "x-request-id",
+        "x-scheme",
+    ];
     let map = headers
         .iter()
+        .filter(|(h, _)| !nginx_headers.contains(&h.as_str()))
         .map(|(name, value)| (name.as_str(), value.to_str().unwrap_or("invalid string")))
         .collect::<BTreeMap<_, _>>();
     let json = serde_json::to_string(&map).unwrap();

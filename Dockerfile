@@ -9,9 +9,9 @@ WORKDIR /usr/src/app
 RUN USER=root cargo init
 COPY ./Cargo.toml .
 COPY ./Cargo.lock .
-COPY ./build.rs .
 RUN cargo build --release --target x86_64-unknown-linux-musl
 COPY ./src ./src
+COPY ./build.rs .
 RUN touch src/main.rs && cargo build --release --target x86_64-unknown-linux-musl
 
 FROM scratch
