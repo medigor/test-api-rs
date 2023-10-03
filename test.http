@@ -1,8 +1,8 @@
 ###
-POST http://localhost:8080/counter
+GET http://localhost:8080/about
 
 ###
-POST http://localhost:8080/counter/json
+POST http://localhost:8080/counter
 
 ###
 POST http://localhost:8080/sleep/1000
@@ -11,4 +11,4 @@ POST http://localhost:8080/sleep/1000
 GET http://localhost:8080/headers
 
 ###
-OPTIONS http://localhost:8080/headers
+GET http://localhost:8080/ip

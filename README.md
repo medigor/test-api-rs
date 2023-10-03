@@ -1,5 +1,7 @@
 # test-api
 
+https://test-api.medigor.ru
+
 Http api для тестирования. Доступные эндпойнты см. в коде или примеры в [test.http](test.http)
 
 Сборка:

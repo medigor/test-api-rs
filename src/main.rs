@@ -1,18 +1,14 @@
+mod handlers;
+
 use axum::{
-    extract::Path,
-    http::{header, HeaderMap, Method, StatusCode},
-    response::IntoResponse,
+    http::Method,
     routing::{get, post},
-    Json, Router,
+    Router,
 };
+use chrono::{DateTime, Utc};
 use serde::Serialize;
-use std::{
-    collections::HashMap,
-    sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
-};
 use tokio::signal;
-use tokio::time::sleep;
+
 use tower_http::cors::{Any, CorsLayer};
 
 #[derive(Serialize)]
@@ -46,50 +42,31 @@ async fn shutdown_signal() {
     println!("signal received, starting graceful shutdown");
 }
 
-async fn headers(headers: HeaderMap) -> impl IntoResponse {
-    let mut map = HashMap::<&str, &str>::new();
-    for (name, value) in headers.iter() {
-        map.insert(name.as_str(), value.to_str().unwrap_or("invalid string"));
-    }
-    let json = serde_json::to_string(&map).unwrap();
-
-    ([(header::CONTENT_TYPE, "application/json")], json)
+#[derive(Clone)]
+pub struct AppState {
+    start_date: DateTime<Utc>,
 }
 
 #[tokio::main]
 async fn main() {
-    let counter = Box::leak(Box::new(AtomicU64::new(1)));
-
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
         .allow_origin(Any);
 
+    let state = AppState {
+        start_date: Utc::now(),
+    };
+
     let app = Router::new()
-        .route(
-            "/counter/json",
-            post(|| async {
-                Json(CounterResponse {
-                    counter: counter.fetch_add(1, Ordering::SeqCst),
-                })
-            }),
-        )
-        .route(
-            "/counter",
-            post(|| async { format!("{}", counter.fetch_add(1, Ordering::SeqCst)) }),
-        )
-        .route(
-            "/sleep/:duration",
-            post(|Path(duration): Path<u64>| async move {
-                if duration > 30_000 {
-                    return StatusCode::BAD_REQUEST;
-                }
-                sleep(Duration::from_millis(duration)).await;
-                StatusCode::OK
-            }),
-        )
-        .route("/headers", get(headers))
-        .route("/headers", post(headers))
-        .layer(cors);
+        .route("/", get(handlers::index))
+        .route("/about", get(handlers::about))
+        .route("/counter", post(handlers::counter))
+        .route("/sleep/:duration", post(handlers::sleep))
+        .route("/headers", get(handlers::headers))
+        .route("/headers", post(handlers::headers))
+        .route("/ip", get(handlers::ip))
+        .layer(cors)
+        .with_state(state);
 
     axum::Server::bind(&([0, 0, 0, 0], 8080).into())
         .serve(app.into_make_service())
