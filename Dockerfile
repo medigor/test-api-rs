@@ -2,8 +2,7 @@ FROM docker.io/library/rust:1.72.1-bullseye AS build
 RUN apt-get -y update && \
     apt-get -y install musl musl-dev musl-tools && \
     rustup target add x86_64-unknown-linux-musl
-ENV RUST_BACKTRACE=1 \
-    CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
+ENV RUST_BACKTRACE=1
 
 WORKDIR /usr/src/app
 RUN USER=root cargo init
