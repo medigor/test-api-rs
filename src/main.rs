@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::Serialize;
-use tokio::signal;
+use tokio::{signal, net::TcpListener};
 
 use tower_http::cors::{Any, CorsLayer};
 
@@ -68,8 +68,9 @@ async fn main() {
         .layer(cors)
         .with_state(state);
 
-    axum::Server::bind(&([0, 0, 0, 0], 8080).into())
-        .serve(app.into_make_service())
+    let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+
+    axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
