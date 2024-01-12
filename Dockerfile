@@ -3,6 +3,7 @@ RUN apt-get -y update && \
     apt-get -y install musl musl-dev musl-tools && \
     rustup target add x86_64-unknown-linux-musl
 ENV RUST_BACKTRACE=1
+ENV RUSTFLAGS='-C target-cpu=skylake'
 
 WORKDIR /usr/src/app
 RUN USER=root cargo init

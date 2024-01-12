@@ -5,9 +5,9 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use chrono::{DateTime, Utc};
+use chrono::{SecondsFormat, Utc};
 use serde::Serialize;
-use tokio::{signal, net::TcpListener};
+use tokio::{net::TcpListener, signal};
 
 use tower_http::cors::{Any, CorsLayer};
 
@@ -44,7 +44,7 @@ async fn shutdown_signal() {
 
 #[derive(Clone)]
 pub struct AppState {
-    start_date: DateTime<Utc>,
+    start_date: &'static str,
 }
 
 #[tokio::main]
@@ -54,7 +54,7 @@ async fn main() {
         .allow_origin(Any);
 
     let state = AppState {
-        start_date: Utc::now(),
+        start_date: Box::leak(Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true).into_boxed_str()),
     };
 
     let app = Router::new()

@@ -10,8 +10,7 @@ use axum::{
     response::{Html, IntoResponse},
     Json,
 };
-use chrono::SecondsFormat;
-use serde_json::json;
+use serde::Serialize;
 
 use crate::AppState;
 
@@ -20,18 +19,28 @@ pub async fn index() -> impl IntoResponse {
 }
 
 pub async fn about(State(state): State<AppState>) -> impl IntoResponse {
-    let build_date = env!("BUILD_DATE");
-    Json(json!({
-        "version": env!("CARGO_PKG_VERSION"),
-        "build_date": build_date,
-        "start_date": state.start_date.to_rfc3339_opts(SecondsFormat::Secs, true),
-    }))
+    #[derive(Serialize)]
+    struct Response {
+        version: &'static str,
+        build_date: &'static str,
+        start_date: &'static str,
+    }
+    Json(Response {
+        version: env!("CARGO_PKG_VERSION"),
+        build_date: env!("BUILD_DATE"),
+        start_date: state.start_date,
+    })
 }
 
 pub async fn counter() -> impl IntoResponse {
     static COUNTER: AtomicU64 = AtomicU64::new(1);
-
-    Json(json!({"counter": COUNTER.fetch_add(1, Ordering::SeqCst)}))
+    #[derive(Serialize)]
+    struct Response {
+        counter: u64,
+    }
+    Json(Response {
+        counter: COUNTER.fetch_add(1, Ordering::SeqCst),
+    })
 }
 
 pub async fn headers(headers: HeaderMap) -> impl IntoResponse {
@@ -67,7 +76,11 @@ pub async fn ip(headers: HeaderMap) -> impl IntoResponse {
     let ip = headers
         .get("x-real-ip")
         .map(|x| x.to_str().unwrap())
-        .unwrap_or_default();
-
-    Json(json!({"ip": ip}))
+        .unwrap_or_default()
+        .to_owned();
+    #[derive(Serialize)]
+    struct Response {
+        ip: String,
+    }
+    Json(Response { ip })
 }
