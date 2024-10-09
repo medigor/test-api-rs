@@ -6,15 +6,9 @@ use axum::{
     Router,
 };
 use chrono::{SecondsFormat, Utc};
-use serde::Serialize;
 use tokio::{net::TcpListener, signal};
 
 use tower_http::cors::{Any, CorsLayer};
-
-#[derive(Serialize)]
-struct CounterResponse {
-    counter: u64,
-}
 
 async fn shutdown_signal() {
     let ctrl_c = async {
