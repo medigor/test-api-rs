@@ -59,7 +59,7 @@ pub async fn headers(headers: HeaderMap) -> impl IntoResponse {
         .filter(|(h, _)| !nginx_headers.contains(&h.as_str()))
         .map(|(name, value)| (name.as_str(), value.to_str().unwrap_or("invalid string")))
         .collect::<BTreeMap<_, _>>();
-    let json = serde_json::to_string(&map).unwrap();
+    let json = serde_json::to_string(&map).unwrap_or_default();
 
     ([(header::CONTENT_TYPE, "application/json")], json)
 }
@@ -75,7 +75,7 @@ pub async fn sleep(Path(duration): Path<u64>) -> impl IntoResponse {
 pub async fn ip(headers: HeaderMap) -> impl IntoResponse {
     let ip = headers
         .get("x-real-ip")
-        .map(|x| x.to_str().unwrap())
+        .map(|x| x.to_str().unwrap_or_default())
         .unwrap_or_default()
         .to_owned();
     #[derive(Serialize)]

@@ -1,5 +1,7 @@
 mod handlers;
 
+use std::error;
+
 use axum::{
     http::Method,
     routing::{get, post},
@@ -41,14 +43,23 @@ pub struct AppState {
     start_date: &'static str,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() -> Result<(), Box<dyn error::Error>> {
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?
+        .block_on(run())
+}
+async fn run() -> Result<(), Box<dyn error::Error>> {
     let cors = CorsLayer::new()
         .allow_methods([Method::GET, Method::POST])
         .allow_origin(Any);
 
     let state = AppState {
-        start_date: Box::leak(Utc::now().to_rfc3339_opts(SecondsFormat::Secs, true).into_boxed_str()),
+        start_date: Box::leak(
+            Utc::now()
+                .to_rfc3339_opts(SecondsFormat::Secs, true)
+                .into_boxed_str(),
+        ),
     };
 
     let app = Router::new()
@@ -62,10 +73,10 @@ async fn main() {
         .layer(cors)
         .with_state(state);
 
-    let listener = TcpListener::bind("0.0.0.0:8080").await.unwrap();
+    let listener = TcpListener::bind("0.0.0.0:8080").await?;
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
-        .await
-        .unwrap();
+        .await?;
+    Ok(())
 }
