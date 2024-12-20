@@ -5,11 +5,15 @@ use std::{
 };
 
 use axum::{
-    extract::{Path, State},
+    extract::{
+        ws::{Message, WebSocket},
+        Path, State, WebSocketUpgrade,
+    },
     http::{header, HeaderMap, StatusCode},
     response::{Html, IntoResponse},
     Json,
 };
+use futures::StreamExt;
 use serde::Serialize;
 
 use crate::AppState;
@@ -83,4 +87,45 @@ pub async fn ip(headers: HeaderMap) -> impl IntoResponse {
         ip: String,
     }
     Json(Response { ip })
+}
+
+pub async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.max_message_size(1024)
+        .on_upgrade(move |socket| handle_socket(socket))
+}
+
+async fn handle_socket(mut socket: WebSocket) {
+    if socket
+        .send(Message::Text("Hello from Rust!".into()))
+        .await
+        .is_err()
+    {
+        return;
+    }
+    let mut count = 0;
+    while let Some(Ok(msg)) = socket.next().await {
+        match msg {
+            Message::Text(str) => {
+                count += 1;
+                if socket.send(Message::Text(str)).await.is_err() {
+                    break;
+                }
+            }
+            Message::Binary(vec) => {
+                count += 1;
+                if socket.send(Message::Binary(vec)).await.is_err() {
+                    break;
+                }
+            }
+            Message::Ping(_) => (),
+            Message::Pong(_) => (),
+            Message::Close(_) => break,
+        }
+        if count >= 10 {
+            break;
+        }
+    }
+    if socket.send("Bye Bye".into()).await.is_ok() {
+        let _ = socket.close().await;
+    }
 }

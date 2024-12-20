@@ -4,7 +4,7 @@ use std::error;
 
 use axum::{
     http::Method,
-    routing::{get, post},
+    routing::{any, get, post},
     Router,
 };
 use chrono::{SecondsFormat, Utc};
@@ -70,6 +70,7 @@ async fn run() -> Result<(), Box<dyn error::Error>> {
         .route("/headers", get(handlers::headers))
         .route("/headers", post(handlers::headers))
         .route("/ip", get(handlers::ip))
+        .route("/ws", any(handlers::ws_handler))
         .layer(cors)
         .with_state(state);
 
