@@ -13,7 +13,7 @@ use axum::{
     response::{Html, IntoResponse},
     Json,
 };
-use futures::StreamExt;
+use futures::{SinkExt, StreamExt};
 use serde::Serialize;
 
 use crate::AppState;
