@@ -15,6 +15,7 @@ use axum::{
 };
 use futures::{SinkExt, StreamExt};
 use serde::Serialize;
+use tokio::time::{timeout, Instant};
 
 use crate::AppState;
 
@@ -90,11 +91,13 @@ pub async fn ip(headers: HeaderMap) -> impl IntoResponse {
 }
 
 pub async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
-    ws.max_message_size(1024)
-        .on_upgrade(move |socket| handle_socket(socket))
+    ws.max_message_size(1024).on_upgrade(handle_socket)
 }
 
 async fn handle_socket(mut socket: WebSocket) {
+    let expires = Instant::now()
+        .checked_add(Duration::from_secs(10))
+        .expect("Failed add duration");
     if socket
         .send(Message::Text("Hello from Rust!".into()))
         .await
@@ -102,17 +105,26 @@ async fn handle_socket(mut socket: WebSocket) {
     {
         return;
     }
-    let mut count = 0;
-    while let Some(Ok(msg)) = socket.next().await {
+
+    loop {
+        let result = timeout(expires - Instant::now(), socket.next()).await;
+        let Ok(msg) = result else {
+            let _ = socket.send(Message::text("Timeout expired")).await;
+            // timeout
+            break;
+        };
+
+        let Some(Ok(msg)) = msg else {
+            break;
+        };
+
         match msg {
             Message::Text(str) => {
-                count += 1;
                 if socket.send(Message::Text(str)).await.is_err() {
                     break;
                 }
             }
             Message::Binary(vec) => {
-                count += 1;
                 if socket.send(Message::Binary(vec)).await.is_err() {
                     break;
                 }
@@ -120,9 +132,6 @@ async fn handle_socket(mut socket: WebSocket) {
             Message::Ping(_) => (),
             Message::Pong(_) => (),
             Message::Close(_) => break,
-        }
-        if count >= 10 {
-            break;
         }
     }
     if socket.send("Bye Bye".into()).await.is_ok() {
